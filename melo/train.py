@@ -317,6 +317,7 @@ def train_and_evaluate(
         language,
         bert,
         ja_bert,
+        e5_embeddings,
     ) in enumerate(tqdm(train_loader)):
         if net_g.module.use_noise_scaled_mas:
             current_mas_noise_scale = (
@@ -359,6 +360,7 @@ def train_and_evaluate(
                 language,
                 bert,
                 ja_bert,
+                e5_embeddings=e5_embeddings
             )
             mel = spec_to_mel_torch(
                 spec,

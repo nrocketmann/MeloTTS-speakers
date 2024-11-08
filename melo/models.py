@@ -777,6 +777,7 @@ class SynthesizerTrn(nn.Module):
         use_sdp=True,
         n_flow_layer=4,
         n_layers_trans_flow=6,
+        e5_dim=768,
         flow_share_parameter=False,
         use_transformer_flow=True,
         use_vc=False,
@@ -881,15 +882,23 @@ class SynthesizerTrn(nn.Module):
         if n_speakers > 0:
             self.emb_g = nn.Embedding(n_speakers, gin_channels)
         else:
-            self.ref_enc = ReferenceEncoder(spec_channels, gin_channels, layernorm=norm_refenc)
+            #self.ref_enc = ReferenceEncoder(spec_channels, gin_channels, layernorm=norm_refenc)
+            # make a sequential MLP with 1 hidden layer that has input dimension e5_dim and output dimension gin_channels
+            self.ref_enc = nn.Sequential(
+                nn.Linear(e5_dim, 256),
+                nn.Tanh(),
+                nn.Linear(256, gin_channels)
+            )
+            
         self.use_vc = use_vc
 
 
-    def forward(self, x, x_lengths, y, y_lengths, sid, tone, language, bert, ja_bert):
+    def forward(self, x, x_lengths, y, y_lengths, sid, tone, language, bert, ja_bert, e5_embeddings=None):
         if self.n_speakers > 0:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         else:
-            g = self.ref_enc(y.transpose(1, 2)).unsqueeze(-1)
+            #g = self.ref_enc(y.transpose(1, 2)).unsqueeze(-1)
+            g = self.ref_enc(e5_embeddings).unsqueeze(-1)
         if self.use_vc:
             g_p = None
         else:
@@ -979,6 +988,7 @@ class SynthesizerTrn(nn.Module):
         sdp_ratio=0,
         y=None,
         g=None,
+        e5_embeddings=None,
     ):
         # x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, tone, language, bert)
         # g = self.gst(y)
@@ -986,7 +996,8 @@ class SynthesizerTrn(nn.Module):
             if self.n_speakers > 0:
                 g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
             else:
-                g = self.ref_enc(y.transpose(1, 2)).unsqueeze(-1)
+                #g = self.ref_enc(y.transpose(1, 2)).unsqueeze(-1)
+                g = self.ref_enc(e5_embeddings).unsqueeze(-1)
         if self.use_vc:
             g_p = None
         else:

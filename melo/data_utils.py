@@ -10,6 +10,7 @@ from utils import load_filepaths_and_text
 from utils import load_wav_to_torch_librosa as load_wav_to_torch
 from text import cleaned_text_to_sequence, get_bert
 import numpy as np
+import ast
 
 """Multi speaker version"""
 
@@ -66,17 +67,18 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
             self.audiopaths_sid_text
         ):
             try:
-                _id, spk, language, text, phones, tone, word2ph = item
+                _id, spk, language, text, phones, tone, word2ph, e5_emb = item
             except:
                 print(item)
                 raise
             audiopath = f"{_id}"
             if self.min_text_len <= len(phones) and len(phones) <= self.max_text_len:
+                e5_emb = np.array(ast.literal_eval(e5_emb))
                 phones = phones.split(" ")
                 tone = [int(i) for i in tone.split(" ")]
                 word2ph = [int(i) for i in word2ph.split(" ")]
                 audiopaths_sid_text_new.append(
-                    [audiopath, spk, language, text, phones, tone, word2ph]
+                    [audiopath, spk, language, text, phones, tone, word2ph, e5_emb]
                 )
                 lengths.append(os.path.getsize(audiopath) // (2 * self.hop_length))
             else:
@@ -93,16 +95,18 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
     def get_audio_text_speaker_pair(self, audiopath_sid_text):
         # separate filename, speaker_id and text
-        audiopath, sid, language, text, phones, tone, word2ph = audiopath_sid_text
+        audiopath, sid, language, text, phones, tone, word2ph, e5_emb = audiopath_sid_text
 
         bert, ja_bert, phones, tone, language = self.get_text(
             text, word2ph, phones, tone, language, audiopath
         )
 
+        e5_emb = torch.tensor(e5_emb)
+
         spec, wav = self.get_audio(audiopath)
         sid = int(getattr(self.spk_map, sid, '0'))
         sid = torch.LongTensor([sid])
-        return (phones, spec, wav, sid, tone, language, bert, ja_bert)
+        return (phones, spec, wav, sid, tone, language, bert, ja_bert, e5_emb)
 
     def get_audio(self, filename):
         audio_norm, sampling_rate = load_wav_to_torch(filename, self.sampling_rate)
@@ -238,6 +242,7 @@ class TextAudioSpeakerCollate:
         wav_padded.zero_()
         bert_padded.zero_()
         ja_bert_padded.zero_()
+
         for i in range(len(ids_sorted_decreasing)):
             row = batch[ids_sorted_decreasing[i]]
 
@@ -267,6 +272,8 @@ class TextAudioSpeakerCollate:
             ja_bert = row[7]
             ja_bert_padded[i, :, : ja_bert.size(1)] = ja_bert
 
+        
+        e5_embs = torch.stack([batch[idx][-1] for idx in ids_sorted_decreasing])
         return (
             text_padded,
             text_lengths,
@@ -279,6 +286,7 @@ class TextAudioSpeakerCollate:
             language_padded,
             bert_padded,
             ja_bert_padded,
+            e5_embs
         )
 
 
