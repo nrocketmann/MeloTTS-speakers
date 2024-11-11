@@ -262,7 +262,7 @@ def get_hparams(init=True):
                             help='pretrain model duration')
 
     args = parser.parse_args()
-    model_dir = os.path.join("./logs", args.model)
+    model_dir = os.path.join("/home/jovyan/data/tts/melo-data/logs", args.model)
 
     os.makedirs(model_dir, exist_ok=True)
 

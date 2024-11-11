@@ -90,7 +90,7 @@ def run():
         eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps.data)
         eval_loader = DataLoader(
             eval_dataset,
-            num_workers=0,
+            num_workers=4,
             shuffle=False,
             batch_size=1,
             pin_memory=True,
@@ -252,36 +252,36 @@ def run():
     scaler = GradScaler(enabled=hps.train.fp16_run)
 
     for epoch in range(epoch_str, hps.train.epochs + 1):
-        try:
-            if rank == 0:
-                train_and_evaluate(
-                    rank,
-                    epoch,
-                    hps,
-                    [net_g, net_d, net_dur_disc],
-                    [optim_g, optim_d, optim_dur_disc],
-                    [scheduler_g, scheduler_d, scheduler_dur_disc],
-                    scaler,
-                    [train_loader, eval_loader],
-                    logger,
-                    [writer, writer_eval],
-                )
-            else:
-                train_and_evaluate(
-                    rank,
-                    epoch,
-                    hps,
-                    [net_g, net_d, net_dur_disc],
-                    [optim_g, optim_d, optim_dur_disc],
-                    [scheduler_g, scheduler_d, scheduler_dur_disc],
-                    scaler,
-                    [train_loader, None],
-                    None,
-                    None,
-                )
-        except Exception as e:
-            print(e)
-            torch.cuda.empty_cache()
+        #try:
+        if rank == 0:
+            train_and_evaluate(
+                rank,
+                epoch,
+                hps,
+                [net_g, net_d, net_dur_disc],
+                [optim_g, optim_d, optim_dur_disc],
+                [scheduler_g, scheduler_d, scheduler_dur_disc],
+                scaler,
+                [train_loader, eval_loader],
+                logger,
+                [writer, writer_eval],
+            )
+        else:
+            train_and_evaluate(
+                rank,
+                epoch,
+                hps,
+                [net_g, net_d, net_dur_disc],
+                [optim_g, optim_d, optim_dur_disc],
+                [scheduler_g, scheduler_d, scheduler_dur_disc],
+                scaler,
+                [train_loader, None],
+                None,
+                None,
+            )
+        # except Exception as e:
+        #     print(e)
+        #     torch.cuda.empty_cache()
         scheduler_g.step()
         scheduler_d.step()
         if net_dur_disc is not None:
@@ -556,7 +556,10 @@ def evaluate(hps, generator, eval_loader, writer_eval):
             language,
             bert,
             ja_bert,
-        ) in enumerate(eval_loader):
+            e5_embeddings
+        ) in tqdm(enumerate(eval_loader)):
+            if batch_idx>100:
+                break
             x, x_lengths = x.cuda(), x_lengths.cuda()
             spec, spec_lengths = spec.cuda(), spec_lengths.cuda()
             y, y_lengths = y.cuda(), y_lengths.cuda()
@@ -577,6 +580,7 @@ def evaluate(hps, generator, eval_loader, writer_eval):
                     y=spec,
                     max_len=1000,
                     sdp_ratio=0.0 if not use_sdp else 1.0,
+                    e5_embeddings=e5_embeddings,
                 )
                 y_hat_lengths = mask.sum([1, 2]).long() * hps.data.hop_length
 

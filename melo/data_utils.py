@@ -67,7 +67,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
             self.audiopaths_sid_text
         ):
             try:
-                _id, spk, language, text, phones, tone, word2ph, e5_emb = item
+                _id, e5_emb, language, text, phones, tone, word2ph = item
             except:
                 print(item)
                 raise
@@ -78,7 +78,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                 tone = [int(i) for i in tone.split(" ")]
                 word2ph = [int(i) for i in word2ph.split(" ")]
                 audiopaths_sid_text_new.append(
-                    [audiopath, spk, language, text, phones, tone, word2ph, e5_emb]
+                    [audiopath, '0', language, text, phones, tone, word2ph, e5_emb]
                 )
                 lengths.append(os.path.getsize(audiopath) // (2 * self.hop_length))
             else:
