@@ -80,7 +80,7 @@ class TTS(nn.Module):
             print(" > ===========================")
         return texts
 
-    def tts_to_file(self, text, speaker_id, output_path=None, sdp_ratio=0.2, noise_scale=0.6, noise_scale_w=0.8, speed=1.0, pbar=None, format=None, position=None, quiet=False,):
+    def tts_to_file(self, text, speaker_id, output_path=None, sdp_ratio=0.2, noise_scale=0.6, noise_scale_w=0.8, speed=1.0, pbar=None, format=None, position=None, quiet=False,e5_embeddings=None,):
         language = self.language
         texts = self.split_sentences_into_pieces(text, language, quiet)
         audio_list = []
@@ -105,6 +105,7 @@ class TTS(nn.Module):
                 bert = bert.to(device).unsqueeze(0)
                 ja_bert = ja_bert.to(device).unsqueeze(0)
                 x_tst_lengths = torch.LongTensor([phones.size(0)]).to(device)
+                e5_embeddings = torch.tensor(e5_embeddings).to(device).unsqueeze(0)
                 del phones
                 speakers = torch.LongTensor([speaker_id]).to(device)
                 audio = self.model.infer(
@@ -119,6 +120,7 @@ class TTS(nn.Module):
                         noise_scale=noise_scale,
                         noise_scale_w=noise_scale_w,
                         length_scale=1. / speed,
+                        e5_embeddings=e5_embeddings,
                     )[0][0, 0].data.cpu().float().numpy()
                 del x_tst, tones, lang_ids, bert, ja_bert, x_tst_lengths, speakers
                 # 
