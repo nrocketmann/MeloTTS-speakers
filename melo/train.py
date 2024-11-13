@@ -120,6 +120,8 @@ def run():
             0.1,
             gin_channels=hps.model.gin_channels if hps.data.n_speakers != 0 else 0,
         ).cuda(rank)
+
+    hps.model.use_spk_conditioned_encoder = False # hardcode baybee
     if (
         "use_spk_conditioned_encoder" in hps.model.keys()
         and hps.model.use_spk_conditioned_encoder is True
@@ -339,6 +341,7 @@ def train_and_evaluate(
         language = language.cuda(rank, non_blocking=True)
         bert = bert.cuda(rank, non_blocking=True)
         ja_bert = ja_bert.cuda(rank, non_blocking=True)
+        e5_embeddings = e5_embeddings.cuda()
 
         with autocast(enabled=hps.train.fp16_run):
             (
@@ -568,6 +571,7 @@ def evaluate(hps, generator, eval_loader, writer_eval):
             ja_bert = ja_bert.cuda()
             tone = tone.cuda()
             language = language.cuda()
+            e5_embeddings = e5_embeddings.cuda()
             for use_sdp in [True, False]:
                 y_hat, attn, mask, *_ = generator.module.infer(
                     x,

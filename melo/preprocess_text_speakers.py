@@ -122,10 +122,11 @@ def main(
 
     config["data"]["training_files"] = train_path
     config["data"]["validation_files"] = val_path
-    # config["data"]["n_speakers"] = len(spk_id_map)
+    config["data"]["n_speakers"] = 0
     config["num_languages"] = num_languages
     config["num_tones"] = num_tones
     config["symbols"] = symbols
+    config["model"]["use_spk_conditioned_encoder"] = False
 
     with open(out_config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)

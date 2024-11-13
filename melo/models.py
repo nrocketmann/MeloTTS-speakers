@@ -806,9 +806,10 @@ class SynthesizerTrn(nn.Module):
         self.n_speakers = n_speakers
         self.gin_channels = gin_channels
         self.n_layers_trans_flow = n_layers_trans_flow
-        self.use_spk_conditioned_encoder = kwargs.get(
-            "use_spk_conditioned_encoder", True
-        )
+        # self.use_spk_conditioned_encoder = kwargs.get(
+        #     "use_spk_conditioned_encoder", True
+        # )
+        self.use_spk_conditioned_encoder=False
         self.use_sdp = use_sdp
         self.use_noise_scaled_mas = kwargs.get("use_noise_scaled_mas", False)
         self.mas_noise_scale_initial = kwargs.get("mas_noise_scale_initial", 0.01)
@@ -889,6 +890,7 @@ class SynthesizerTrn(nn.Module):
                 nn.Tanh(),
                 nn.Linear(256, gin_channels)
             )
+            print("USING E5!!!!!#############################")
             
         self.use_vc = use_vc
 
@@ -994,8 +996,10 @@ class SynthesizerTrn(nn.Module):
         # g = self.gst(y)
         if g is None:
             if self.n_speakers > 0:
+                print("NUM SPEAKERS BIG")
                 g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
             else:
+                print("E5 USED")
                 #g = self.ref_enc(y.transpose(1, 2)).unsqueeze(-1)
                 g = self.ref_enc(e5_embeddings).unsqueeze(-1)
         if self.use_vc:

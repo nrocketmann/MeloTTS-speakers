@@ -101,7 +101,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
             text, word2ph, phones, tone, language, audiopath
         )
 
-        e5_emb = torch.tensor(e5_emb)
+        e5_emb = torch.tensor(e5_emb, dtype=torch.float32)
 
         spec, wav = self.get_audio(audiopath)
         sid = int(getattr(self.spk_map, sid, '0'))
